@@ -68,6 +68,14 @@ function initMap() {
         checkItemCollision();
     });
 }
+       // ユーザーの現在位置を取得
+navigator.geolocation.getCurrentPosition(function (position) {
+    var userLat = position.coords.latitude;
+    var userLng = position.coords.longitude;
+
+    // ユーザーの位置を地図上にマーク
+    var userMarker = L.marker([userLat, userLng]).addTo(map);
+}); 
 
 // ランダムな位置を生成
 function getRandomLatLng() {
