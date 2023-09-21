@@ -1,36 +1,142 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自分の位置をマーク</title>
-    <!-- Leafletのスタイルとスクリプトの読み込み -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ゴーストハントゲーム</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
 </head>
+    <style>
+        /* スタイルを追加する場合はここに記述 */
+#map {
+    height: 400px;
+    width: 100%;
+}
+    </style>
 <body>
-    <!-- 地図を表示するコンテナ -->
-    <div id="map" style="width: 100%; height: 400px;"></div>
-
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        // 地図を作成し、特定の位置にズームイン
-        var map = L.map('map').setView([35.681167, 139.767052], 15); // ここで緯度と経度を設定
+        // JavaScriptコードをここに配置
+// 必要な変数を初期化
+var map;
+var playerMarker;
+var ghostMarkers = [];
+var treasureMarkers = [];
+var treasureCount = 10;
+var ghostCount = 10;
 
-        // OpenStreetMapタイルレイヤーを追加
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-        }).addTo(map);
+// Leafletを使って地図を表示
+function initMap() {
+    map = L.map('map').setView([35.681167, 139.767052], 15); // 初期位置を設定
 
-        // マーカーを追加し、特定の位置に配置
-        var marker = L.marker([35.681167, 139.767052]).addTo(map); // ここで緯度と経度を設定
-        marker.bindPopup("ここにいます！").openPopup(); // マーカーにポップアップを追加
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+    }).addTo(map);
 
-        // 自分の位置を取得するためのGeolocation APIを使用
-        navigator.geolocation.getCurrentPosition(function (location) {
-            var latlng = new L.LatLng(location.coords.latitude, location.coords.longitude);
-            marker.setLatLng(latlng);
-            map.panTo(latlng); // マーカーの位置にズームイン
-        });
+    // プレイヤーのアイコンを設定
+    var playerIcon = L.icon({
+        iconUrl: 'player.png', // プレイヤーのアイコン画像ファイル
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+    });
+
+    // プレイヤーを地図上に配置
+    playerMarker = L.marker([35.681167, 139.767052], { icon: playerIcon }).addTo(map);
+
+    // ゴーストのアイコンを設定
+    var ghostIcon = L.icon({
+        iconUrl: 'ghost.png', // ゴーストのアイコン画像ファイル
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+    });
+
+    // ゴーストとお宝を配置
+    for (var i = 0; i < treasureCount; i++) {
+        var treasureMarker = L.marker(getRandomLatLng(), { icon: treasureIcon }).addTo(map);
+        treasureMarkers.push(treasureMarker);
+    }
+
+    for (var i = 0; i < ghostCount; i++) {
+        var ghostMarker = L.marker(getRandomLatLng(), { icon: ghostIcon }).addTo(map);
+        ghostMarkers.push(ghostMarker);
+    }
+
+    // プレイヤーの移動を監視
+    map.on('move', function () {
+        checkItemCollision();
+    });
+}
+
+// ランダムな位置を生成
+function getRandomLatLng() {
+    var lat = 35.681167 + (Math.random() - 0.5) / 50;
+    var lng = 139.767052 + (Math.random() - 0.5) / 50;
+    return [lat, lng];
+}
+
+// プレイヤーがアイテムに触れたときの処理
+function checkItemCollision() {
+    for (var i = 0; i < treasureMarkers.length; i++) {
+        var treasureMarker = treasureMarkers[i];
+        var distance = playerMarker.getLatLng().distanceTo(treasureMarker.getLatLng());
+
+        if (distance < 20) { // 20メートル以内にお宝に触れた場合
+            map.removeLayer(treasureMarker);
+            treasureMarkers.splice(i, 1);
+            i--;
+        }
+    }
+
+    for (var i = 0; i < ghostMarkers.length; i++) {
+        var ghostMarker = ghostMarkers[i];
+        var distance = playerMarker.getLatLng().distanceTo(ghostMarker.getLatLng());
+
+        if (distance < 20) { // 20メートル以内にゴーストに触れた場合
+            alert('ゴーストに捕まりました！ゲームオーバー！');
+            resetGame();
+        }
+    }
+
+    // すべてのお宝を獲得した場合
+    if (treasureMarkers.length === 0) {
+        alert('すべてのお宝を獲得しました！ゲームクリア！');
+        resetGame();
+    }
+}
+
+// ゲームをリセット
+function resetGame() {
+    for (var i = 0; i < treasureMarkers.length; i++) {
+        map.removeLayer(treasureMarkers[i]);
+    }
+    treasureMarkers = [];
+
+    for (var i = 0; i < ghostMarkers.length; i++) {
+        map.removeLayer(ghostMarkers[i]);
+    }
+    ghostMarkers = [];
+
+    playerMarker.setLatLng([35.681167, 139.767052]); // プレイヤーを初期位置に戻す
+
+    // 新しいゴーストとお宝を配置
+    for (var i = 0; i < treasureCount; i++) {
+        var treasureMarker = L.marker(getRandomLatLng(), { icon: treasureIcon }).addTo(map);
+        treasureMarkers.push(treasureMarker);
+    }
+
+    for (var i = 0; i < ghostCount; i++) {
+        var ghostMarker = L.marker(getRandomLatLng(), { icon: ghostIcon }).addTo(map);
+        ghostMarkers.push(ghostMarker);
+    }
+}
+
+// ページ読み込み時にマップを初期化
+initMap();
+    </script>
+</body>
+</html>
     </script>
 </body>
 </html>
