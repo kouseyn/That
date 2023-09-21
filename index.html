@@ -139,6 +139,17 @@ function resetGame() {
         ghostMarkers.push(ghostMarker);
     }
 }
+        // ユーザーの現在位置を取得
+navigator.geolocation.getCurrentPosition(function (position) {
+    var userLat = position.coords.latitude;
+    var userLng = position.coords.longitude;
+
+    // ユーザーの位置を地図上にマーク
+    var userMarker = L.marker([userLat, userLng]).addTo(map);
+
+    // 地図をユーザーの位置に移動
+    map.setView([userLat, userLng], 15); // 15はズームレベルです。適宜調整してください。
+});
 
 // ページ読み込み時にマップを初期化
 initMap();
